@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1086999134216",
+    "project_id": "vibrationappcommunication",
+    "storage_bucket": "vibrationappcommunication.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1086999134216:android:ce641dbd77512f9b5c11bd",
+        "android_client_info": {
+          "package_name": "com.example.vibration_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9wDay0wgqsnDAmX33Uzd-ReCrgdgHAUk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
