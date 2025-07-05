@@ -5,21 +5,15 @@ import 'main.dart';
 
 class AjustesPage extends StatefulWidget {
   final bool hasAmplitudeControl;
-
-  const AjustesPage({
-    super.key,
-    required this.hasAmplitudeControl,
-  });
-
+  const AjustesPage({super.key, required this.hasAmplitudeControl});
   @override
   State<AjustesPage> createState() => _AjustesPageState();
 }
 
 class _AjustesPageState extends State<AjustesPage> {
-  // Variáveis de estado para as configurações
-  int _continuousDuration = 3; // Segundos
-  int _patternDuration = 200; // Milissegundos
-  int _patternSpacing = 100; // Milissegundos
+  int _continuousDuration = 3;
+  int _patternDuration = 200;
+  int _patternSpacing = 100;
   int _vibrationIntensity = 255;
   ThemeMode _currentThemeMode = ThemeMode.system;
   final service = FlutterBackgroundService();
@@ -30,7 +24,6 @@ class _AjustesPageState extends State<AjustesPage> {
     _loadSettings();
   }
 
-  /// Carrega as configurações salvas do dispositivo
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -42,13 +35,11 @@ class _AjustesPageState extends State<AjustesPage> {
     });
   }
 
-  /// Função genérica para salvar um valor inteiro no SharedPreferences
   Future<void> _saveIntSetting(String key, int value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(key, value);
   }
 
-  /// Salva e aplica a mudança de tema
   Future<void> _onThemeChanged(ThemeMode? value) async {
     if (value == null) return;
     setState(() => _currentThemeMode = value);
@@ -59,13 +50,10 @@ class _AjustesPageState extends State<AjustesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Ajustes'),
-      ),
+      appBar: AppBar(title: const Text('Ajustes')),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          // Card de Ajustes de Vibração
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -75,8 +63,7 @@ class _AjustesPageState extends State<AjustesPage> {
                   Text("Vibração", style: Theme.of(context).textTheme.titleLarge),
                   const Divider(),
                   _buildSettingRow(
-                    label: "Duração de Alerta",
-                    value: "$_continuousDuration s",
+                    label: "Duração de Alerta", value: "$_continuousDuration s",
                     onDecrement: () {
                       if (_continuousDuration > 1) {
                         setState(() => _continuousDuration--);
@@ -84,31 +71,31 @@ class _AjustesPageState extends State<AjustesPage> {
                       }
                     },
                     onIncrement: () {
-                      if (_continuousDuration < 200) {
+                      if (_continuousDuration < 30) {
                         setState(() => _continuousDuration++);
                         _saveIntSetting('continuous_vibration_duration', _continuousDuration);
                       }
                     },
                   ),
                   _buildSettingRow(
-                    label: "Duração do Toque (Padrão)",
-                    value: "$_patternDuration ms",
+                    label: "Duração do Toque (Padrão)", value: "$_patternDuration ms",
                     onDecrement: () {
                       if (_patternDuration > 50) {
                         setState(() => _patternDuration -= 50);
                         _saveIntSetting('vibration_duration', _patternDuration);
+                        service.invoke('set_duration', {'duration': _patternDuration});
                       }
                     },
                     onIncrement: () {
                       if (_patternDuration < 2000) {
                         setState(() => _patternDuration += 50);
                         _saveIntSetting('vibration_duration', _patternDuration);
+                        service.invoke('set_duration', {'duration': _patternDuration});
                       }
                     },
                   ),
                   _buildSettingRow(
-                    label: "Espaçamento entre Sinais",
-                    value: "$_patternSpacing ms",
+                    label: "Espaçamento entre Sinais", value: "$_patternSpacing ms",
                     onDecrement: () {
                       if (_patternSpacing > 50) {
                         setState(() => _patternSpacing -= 50);
@@ -124,8 +111,7 @@ class _AjustesPageState extends State<AjustesPage> {
                   ),
                   if (widget.hasAmplitudeControl)
                     _buildSettingRow(
-                      label: "Intensidade da Vibração",
-                      value: "$_vibrationIntensity",
+                      label: "Intensidade da Vibração", value: "$_vibrationIntensity",
                       onDecrement: () {
                         if (_vibrationIntensity > 1) {
                           setState(() => _vibrationIntensity--);
@@ -146,7 +132,6 @@ class _AjustesPageState extends State<AjustesPage> {
             ),
           ),
           const SizedBox(height: 20),
-          // Card de Aparência
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -167,7 +152,6 @@ class _AjustesPageState extends State<AjustesPage> {
     );
   }
 
-  /// Widget auxiliar para criar as linhas de configuração com os botões +/-
   Widget _buildSettingRow({
     required String label,
     required String value,

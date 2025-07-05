@@ -21,13 +21,15 @@ void onStart(ServiceInstance service) async {
   StreamSubscription? channelSubscription;
 
   int vibrationIntensity = 255;
-
-  final prefs = await SharedPreferences.getInstance();
-  vibrationIntensity = prefs.getInt('vibration_intensity') ?? 255;
+  int vibrationDuration = 200;
 
   if (service is AndroidServiceInstance) {
-    service.on('setAsForeground').listen((event) { service.setAsForegroundService(); });
-    service.on('setAsBackground').listen((event) { service.setAsBackgroundService(); });
+    service.on('setAsForeground').listen((event) {
+      service.setAsForegroundService();
+    });
+    service.on('setAsBackground').listen((event) {
+      service.setAsBackgroundService();
+    });
   }
 
   service.on('stop').listen((event) {
@@ -40,6 +42,14 @@ void onStart(ServiceInstance service) async {
       vibrationIntensity = event['intensity'] as int;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('vibration_intensity', vibrationIntensity);
+    }
+  });
+
+  service.on('set_duration').listen((event) async {
+    if (event != null && event['duration'] != null) {
+      vibrationDuration = event['duration'] as int;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('vibration_duration', vibrationDuration);
     }
   });
 
@@ -62,7 +72,6 @@ void onStart(ServiceInstance service) async {
                 intensities.add(i % 2 == 1 ? vibrationIntensity : 0);
               }
 
-              // O padrão recebido não é mais modificado. Apenas a intensidade é aplicada.
               Vibration.vibrate(pattern: receivedPattern, intensities: intensities, repeat: -1);
             }
           }
@@ -79,12 +88,10 @@ Future<bool> onIosBackground(ServiceInstance service) async {
   return true;
 }
 
-// FUNÇÃO DE INICIALIZAÇÃO CORRIGIDA E SIMPLIFICADA
 Future<void> initializeService() async {
   final service = FlutterBackgroundService();
 
   await service.configure(
-    // A configuração agora é a mais simples possível para evitar erros de versão da API
     androidConfiguration: AndroidConfiguration(
       onStart: onStart,
       isForegroundMode: true,

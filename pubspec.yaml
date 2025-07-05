@@ -4,7 +4,7 @@ description: "App Vibracao"
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.0+1
+version: 1.2.3+3
 
 environment:
   sdk: ^3.8.1
@@ -19,6 +19,7 @@ dependencies:
   shared_preferences: any
   uuid: any
   url_launcher: any
+  flutter_local_notifications: ^17.2.1
   flutter_background_service: ^5.0.1
   flutter_background_service_android: ^6.3.0
 

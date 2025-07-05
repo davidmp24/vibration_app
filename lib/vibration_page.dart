@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
@@ -15,49 +14,40 @@ class VibrationPage extends StatefulWidget {
   State<VibrationPage> createState() => _VibrationPageState();
 }
 
-class _VibrationPageState extends State<VibrationPage> with WidgetsBindingObserver {
+class _VibrationPageState extends State<VibrationPage> {
   // Controllers e Instâncias
   final TextEditingController _vibrationCountController = TextEditingController();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final service = FlutterBackgroundService();
 
   // Variáveis de Estado
   String? _currentUserId;
-  String _userName = "Carregando...";
   String? _connectedPartnerId;
   String? _connectedPartnerName;
   String? _channelId;
-  bool _isManuallyOnline = false;
   bool _hasAmplitudeControl = false;
-  final Map<String, int> _presetValues = {
-    'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5,
-  };
+  StreamSubscription? _channelSubscription;
+
+  // Mapa para os valores dos atalhos
+  final Map<String, int> _presetValues = {'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5};
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     _initializeUser();
     _checkAmplitudeSupport();
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    if(_isManuallyOnline){
-      _updateUserStatus(isOnline: false);
-    }
+    _channelSubscription?.cancel();
+    _updateUserStatus(isOnline: false);
     _vibrationCountController.dispose();
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed && _isManuallyOnline) {
-      _updateUserStatus(isOnline: true);
-    }
-  }
+  // ##################################################################
+  // LÓGICA PRINCIPAL
+  // ##################################################################
 
   Future<void> _initializeUser() async {
     final prefs = await SharedPreferences.getInstance();
@@ -73,11 +63,13 @@ class _VibrationPageState extends State<VibrationPage> with WidgetsBindingObserv
       await prefs.setString('userId', userId);
       await _promptForUserName(context);
     }
+
     if (mounted) {
       setState(() {
         _currentUserId = prefs.getString('userId');
-        _userName = prefs.getString('userName') ?? "Usuário Anônimo";
       });
+      // Ao iniciar, já fica online
+      _updateUserStatus(isOnline: true);
     }
   }
 
@@ -88,32 +80,6 @@ class _VibrationPageState extends State<VibrationPage> with WidgetsBindingObserv
         _hasAmplitudeControl = hasSupport ?? false;
       });
     }
-  }
-
-  Future<void> _handleOnlineSwitch(bool isOnline) async {
-    setState(() { _isManuallyOnline = isOnline; });
-
-    final isRunning = await service.isRunning();
-    if (isOnline) {
-      if (!isRunning) {
-        await service.startService();
-      }
-      service.invoke('setAsForeground');
-      _sendInitialSettingsToService();
-      await _updateUserStatus(isOnline: true);
-    } else {
-      service.invoke('stop');
-      await _updateUserStatus(isOnline: false);
-      if (_connectedPartnerId != null) {
-        _handleUserTap(_connectedPartnerId!, _connectedPartnerName!);
-      }
-    }
-  }
-
-  Future<void> _sendInitialSettingsToService() async {
-    final prefs = await SharedPreferences.getInstance();
-    final intensity = prefs.getInt('vibration_intensity') ?? 255;
-    service.invoke('set_intensity', {'intensity': intensity});
   }
 
   Future<void> _updateUserStatus({required bool isOnline}) async {
@@ -127,36 +93,59 @@ class _VibrationPageState extends State<VibrationPage> with WidgetsBindingObserv
       );
     } catch (e) {
       _showToast("Erro de conexão. Verifique sua internet.");
-      if (mounted) { setState(() { _isManuallyOnline = !isOnline; }); }
     }
   }
 
   void _handleUserTap(String partnerId, String partnerName) {
-    String? newChannelId;
     if (_connectedPartnerId == partnerId) {
+      _channelSubscription?.cancel();
       setState(() {
         _connectedPartnerId = null;
         _connectedPartnerName = null;
         _channelId = null;
       });
       _showToast("Desconectado.");
-      newChannelId = null;
     } else {
       setState(() {
         _connectedPartnerId = partnerId;
         _connectedPartnerName = partnerName;
         _channelId = _createChannelId(partnerId);
       });
+      _listenToVibrations();
       _showToast("Conectado com $partnerName");
-      newChannelId = _channelId;
-    }
-
-    if (_isManuallyOnline) {
-      service.invoke('setChannel', {'channelId': newChannelId, 'currentUserId': _currentUserId});
     }
   }
 
-  // Função genérica para enviar qualquer padrão para o canal.
+  void _listenToVibrations() {
+    _channelSubscription?.cancel();
+    if (_channelId == null) return;
+    _channelSubscription = _firestore.collection('channels').doc(_channelId).snapshots().listen((snapshot) {
+      if (mounted && snapshot.exists && snapshot.data()?['senderId'] != _currentUserId) {
+        _processReceivedVibration(snapshot.data()!);
+      }
+    });
+  }
+
+  Future<void> _processReceivedVibration(Map<String, dynamic> data) async {
+    final pattern = List<int>.from(data['pattern'] ?? []);
+    if (pattern.isEmpty) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final intensity = prefs.getInt('vibration_intensity') ?? 255;
+
+    final intensities = <int>[];
+    if (_hasAmplitudeControl) {
+      for (int i = 0; i < pattern.length; i++) {
+        intensities.add(i % 2 == 1 ? intensity : 0);
+      }
+      Vibration.vibrate(pattern: pattern, intensities: intensities);
+    } else {
+      Vibration.vibrate(pattern: pattern);
+    }
+
+    _showToast("Sinal recebido!");
+  }
+
   Future<void> _sendPatternToChannel(List<int> pattern) async {
     if (_channelId == null) {
       _showToast("Selecione um usuário para se conectar.");
@@ -169,7 +158,6 @@ class _VibrationPageState extends State<VibrationPage> with WidgetsBindingObserv
     });
   }
 
-  // Função específica para o botão de Alerta (Toque Contínuo)
   Future<void> _sendContinuousVibration(bool start) async {
     List<int> pattern;
     if (start) {
@@ -182,16 +170,21 @@ class _VibrationPageState extends State<VibrationPage> with WidgetsBindingObserv
     await _sendPatternToChannel(pattern);
   }
 
-  // Função específica para o botão de Padrão Personalizado
   void _vibrateCustomPattern() async {
     final prefs = await SharedPreferences.getInstance();
     final int vibrationDuration = prefs.getInt('vibration_duration') ?? 200;
     final int vibrationSpacing = prefs.getInt('vibration_spacing') ?? 100;
 
     final text = _vibrationCountController.text;
-    if (text.isEmpty) { _showToast("Defina uma quantidade ou use um atalho."); return; }
+    if (text.isEmpty) {
+      _showToast("Defina uma quantidade ou use um atalho.");
+      return;
+    }
     final vibrationCount = int.tryParse(text);
-    if (vibrationCount == null || vibrationCount <= 0) { _showToast('Digite um número válido.'); return; }
+    if (vibrationCount == null || vibrationCount <= 0) {
+      _showToast('Digite um número válido.');
+      return;
+    }
 
     List<int> pattern = [0];
     for (int i = 0; i < vibrationCount; i++) {
@@ -225,7 +218,9 @@ class _VibrationPageState extends State<VibrationPage> with WidgetsBindingObserv
                 if (newValue != null && newValue > 0) {
                   final prefs = await SharedPreferences.getInstance();
                   await prefs.setInt('preset_$label', newValue);
-                  if(mounted) { setState(() { _presetValues[label] = newValue; }); }
+                  if (mounted) {
+                    setState(() { _presetValues[label] = newValue; });
+                  }
                   Navigator.of(context).pop();
                 } else {
                   _showToast("Por favor, insira um número válido.");
@@ -266,9 +261,6 @@ class _VibrationPageState extends State<VibrationPage> with WidgetsBindingObserv
 
   @override
   Widget build(BuildContext context) {
-    final String presenceStatusText = _isManuallyOnline ? "Online" : "Offline";
-    final Color presenceStatusColor = _isManuallyOnline ? Colors.greenAccent : Colors.redAccent;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('VibraLink'),
@@ -295,114 +287,101 @@ class _VibrationPageState extends State<VibrationPage> with WidgetsBindingObserv
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Card(
-              child: SwitchListTile(
-                title: Text(presenceStatusText, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: presenceStatusColor)),
-                subtitle: const Text("Ficar visível e receber vibrações em 2º plano"),
-                value: _isManuallyOnline,
-                onChanged: _handleOnlineSwitch,
-                secondary: Icon(Icons.power_settings_new, color: presenceStatusColor),
+            const Text("Usuários Online:", style: TextStyle(fontSize: 16, color: Colors.grey)),
+            const SizedBox(height: 8),
+            Container(
+              height: 150,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade700),
+                borderRadius: BorderRadius.circular(8),
               ),
+              child: _buildUserList(),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
+            Text(
+              _connectedPartnerName == null
+                  ? "Selecione um usuário para conectar"
+                  : "Conectado com: $_connectedPartnerName",
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
+            ),
+            const SizedBox(height: 10),
+            const Divider(),
 
-            if (_isManuallyOnline) ...[
-              const Text("Usuários Online:", style: TextStyle(fontSize: 16, color: Colors.grey)),
-              const SizedBox(height: 8),
-              Container(
-                height: 150,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade700),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: _buildUserList(),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                _connectedPartnerName == null
-                    ? "Selecione um usuário para conectar"
-                    : "Conectado com: $_connectedPartnerName",
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
-              ),
-              const SizedBox(height: 10),
-              const Divider(),
-
-              Card(
-                clipBehavior: Clip.antiAlias,
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    children: [
-                      const Text("Toque Contínuo (Alerta)", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 15),
-                      SizedBox(
-                        width: double.infinity,
-                        child: Listener(
-                          onPointerDown: (_) => _sendContinuousVibration(true),
-                          onPointerUp: (_) => _sendContinuousVibration(false),
-                          child: ElevatedButton.icon(
-                            icon: const Icon(Icons.touch_app, size: 20),
-                            label: const Text('ALERTA', style: TextStyle(fontSize: 16)),
-                            onPressed: () {},
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red[800], fixedSize: const Size.fromHeight(44)),
-                          ),
+            Card(
+              clipBehavior: Clip.antiAlias,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  children: [
+                    const Text("Toque Contínuo (Alerta)", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 15),
+                    SizedBox(
+                      width: double.infinity,
+                      child: Listener(
+                        onPointerDown: (_) => _sendContinuousVibration(true),
+                        onPointerUp: (_) => _sendContinuousVibration(false),
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.touch_app, size: 20),
+                          label: const Text('ALERTA', style: TextStyle(fontSize: 16)),
+                          onPressed: () {},
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red[800], fixedSize: const Size.fromHeight(44)),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-              Card(
-                clipBehavior: Clip.antiAlias,
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    children: [
-                      const Text("Padrão Personalizado", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 15),
-                      const Text("Atalhos de Quantidade:"),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildPresetButton("A"),
-                          _buildPresetButton("B"),
-                          _buildPresetButton("C"),
-                          _buildPresetButton("D"),
-                          _buildPresetButton("E"),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 80,
-                            child: TextFormField(
-                              controller: _vibrationCountController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(border: OutlineInputBorder(), labelText: 'Qtd', isDense: true, contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 8)),
-                              textAlign: TextAlign.center,
-                            ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              clipBehavior: Clip.antiAlias,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  children: [
+                    const Text("Padrão Personalizado", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 15),
+                    const Text("Atalhos de Quantidade:"),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildPresetButton("A"),
+                        _buildPresetButton("B"),
+                        _buildPresetButton("C"),
+                        _buildPresetButton("D"),
+                        _buildPresetButton("E"),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 80,
+                          child: TextFormField(
+                            controller: _vibrationCountController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(border: OutlineInputBorder(), labelText: 'Qtd', isDense: true, contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 8)),
+                            textAlign: TextAlign.center,
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              icon: const Icon(Icons.send, size: 20),
-                              label: const Text('Enviar Padrão', style: TextStyle(fontSize: 15)),
-                              onPressed: _vibrateCustomPattern,
-                              style: ElevatedButton.styleFrom(fixedSize: const Size.fromHeight(44)),
-                            ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.send, size: 20),
+                            label: const Text('Enviar Padrão', style: TextStyle(fontSize: 15)),
+                            onPressed: _vibrateCustomPattern,
+                            style: ElevatedButton.styleFrom(fixedSize: const Size.fromHeight(44)),
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
 
             const SizedBox(height: 30),
             _buildFooter(),
@@ -414,14 +393,9 @@ class _VibrationPageState extends State<VibrationPage> with WidgetsBindingObserv
 
   Widget _buildPresetButton(String label) {
     final String value = _presetValues[label].toString();
-
     return ElevatedButton(
-      onPressed: () {
-        _vibrationCountController.text = value;
-      },
-      onLongPress: () {
-        _showEditPresetDialog(label);
-      },
+      onPressed: () { _vibrationCountController.text = value; },
+      onLongPress: () { _showEditPresetDialog(label); },
       style: ElevatedButton.styleFrom(
         shape: const CircleBorder(),
         padding: const EdgeInsets.all(16),

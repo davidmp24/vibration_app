@@ -6,37 +6,40 @@ class NotificationHelper {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
   FlutterLocalNotificationsPlugin();
 
-  // Inicializa o plugin de notificações
   static Future<void> init() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
-    AndroidInitializationSettings('@mipmap/launcher_icon'); // Usa o ícone do nosso app
+    AndroidInitializationSettings('@mipmap/ic_launcher');
 
     const InitializationSettings initializationSettings = InitializationSettings(
       android: initializationSettingsAndroid,
-      iOS: DarwinInitializationSettings(), // Configuração básica para iOS
+      iOS: DarwinInitializationSettings(),
     );
 
     await _notificationsPlugin.initialize(initializationSettings);
   }
 
-  // Mostra uma notificação
-  static Future<void> showNotification() async {
+  // A função agora aceita um ID, título e corpo para ser mais flexível
+  static Future<void> showNotification({
+    required int id,
+    required String title,
+    required String body,
+  }) async {
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
     AndroidNotificationDetails(
-      'vibration_signal_channel', // ID do canal
-      'Sinais de Vibração',       // Nome do canal
-      channelDescription: 'Canal para receber os sinais do VibraLink',
+      'vibration_signal_channel', // ID do canal para os sinais
+      'Sinais de Vibração (VibraLink)', // Nome do canal visível para o usuário
+      channelDescription: 'Canal para receber os sinais do VibraLink na sua pulseira.',
       importance: Importance.max,
       priority: Priority.high,
-      showWhen: false,
+      showWhen: true,
     );
     const NotificationDetails platformChannelSpecifics =
     NotificationDetails(android: androidPlatformChannelSpecifics);
 
     await _notificationsPlugin.show(
-      0, // ID da notificação
-      'Sinal Recebido!',
-      'Você recebeu um novo sinal no VibraLink.',
+      id, // Usa o ID dinâmico
+      title,
+      body,
       platformChannelSpecifics,
     );
   }

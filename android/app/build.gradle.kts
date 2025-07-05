@@ -31,6 +31,7 @@ dependencies {
 
     // TODO: Adicione outras dependências se for usar mais produtos Firebase no futuro
     // Ex: implementation("com.google.firebase:firebase-firestore-ktx")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4") // Adicione esta linha
 }
 
 android {
@@ -59,10 +60,10 @@ android {
 
     // Configura as opções de compatibilidade de source e target Java
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11 // Recomendado usar Java 11 ou mais recente
+        sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true // Adicione esta linha
     }
-
     // Configura as opções Kotlin para compatibilidade com o Java Target
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11.toString()
