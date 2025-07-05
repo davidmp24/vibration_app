@@ -1,46 +1,130 @@
-// main.dart
-
-import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:ui';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_background_service_android/flutter_background_service_android.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vibration/vibration.dart';
 import 'firebase_options.dart';
-import 'user_list_page.dart'; // Importa a nova tela de "Lobby"
+import 'vibration_page.dart';
+
+final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
+
+@pragma('vm:entry-point')
+void onStart(ServiceInstance service) async {
+  DartPluginRegistrant.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  StreamSubscription? channelSubscription;
+
+  int vibrationIntensity = 255;
+
+  final prefs = await SharedPreferences.getInstance();
+  vibrationIntensity = prefs.getInt('vibration_intensity') ?? 255;
+
+  if (service is AndroidServiceInstance) {
+    service.on('setAsForeground').listen((event) { service.setAsForegroundService(); });
+    service.on('setAsBackground').listen((event) { service.setAsBackgroundService(); });
+  }
+
+  service.on('stop').listen((event) {
+    channelSubscription?.cancel();
+    service.stopSelf();
+  });
+
+  service.on('set_intensity').listen((event) async {
+    if (event != null && event['intensity'] != null) {
+      vibrationIntensity = event['intensity'] as int;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('vibration_intensity', vibrationIntensity);
+    }
+  });
+
+  service.on('setChannel').listen((event) {
+    final channelId = event?['channelId'];
+    final currentUserId = event?['currentUserId'];
+
+    channelSubscription?.cancel();
+
+    if (channelId != null && currentUserId != null) {
+      channelSubscription = firestore.collection('channels').doc(channelId).snapshots().listen((snapshot) {
+        if (snapshot.exists && snapshot.data() != null) {
+          final data = snapshot.data()!;
+          if (data['senderId'] != currentUserId) {
+            final receivedPattern = List<int>.from(data['pattern'] ?? []);
+            if (receivedPattern.isNotEmpty) {
+
+              final intensities = <int>[];
+              for (int i = 0; i < receivedPattern.length; i++) {
+                intensities.add(i % 2 == 1 ? vibrationIntensity : 0);
+              }
+
+              // O padrão recebido não é mais modificado. Apenas a intensidade é aplicada.
+              Vibration.vibrate(pattern: receivedPattern, intensities: intensities, repeat: -1);
+            }
+          }
+        }
+      });
+    }
+  });
+}
+
+@pragma('vm:entry-point')
+Future<bool> onIosBackground(ServiceInstance service) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  DartPluginRegistrant.ensureInitialized();
+  return true;
+}
+
+// FUNÇÃO DE INICIALIZAÇÃO CORRIGIDA E SIMPLIFICADA
+Future<void> initializeService() async {
+  final service = FlutterBackgroundService();
+
+  await service.configure(
+    // A configuração agora é a mais simples possível para evitar erros de versão da API
+    androidConfiguration: AndroidConfiguration(
+      onStart: onStart,
+      isForegroundMode: true,
+      autoStart: true,
+    ),
+    iosConfiguration: IosConfiguration(
+      autoStart: true,
+      onForeground: onStart,
+      onBackground: onIosBackground,
+    ),
+  );
+}
 
 void main() async {
-  // Garante que todos os plugins do Flutter sejam inicializados antes de rodar o app
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await initializeService();
 
-  // Inicializa o Firebase usando as configurações da sua plataforma
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  final prefs = await SharedPreferences.getInstance();
+  final themeIndex = prefs.getInt('theme_mode') ?? 2;
+  themeNotifier.value = ThemeMode.values[themeIndex];
 
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'App de Vibração',
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: Colors.grey[900],
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.black,
-          centerTitle: true,
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
-            backgroundColor: Colors.blueGrey,
-          ),
-        ),
-      ),
-      // A tela inicial do aplicativo agora é a nossa lista de usuários online.
-      home: const UserListPage(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeNotifier,
+      builder: (_, ThemeMode currentMode, __) {
+        return MaterialApp(
+          title: 'VibraLink',
+          theme: ThemeData.light(useMaterial3: true),
+          darkTheme: ThemeData.dark(useMaterial3: true),
+          themeMode: currentMode,
+          home: const VibrationPage(),
+        );
+      },
     );
   }
 }

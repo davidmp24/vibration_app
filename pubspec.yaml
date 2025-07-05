@@ -19,6 +19,8 @@ dependencies:
   shared_preferences: any
   uuid: any
   url_launcher: any
+  flutter_background_service: ^5.0.1
+  flutter_background_service_android: ^6.3.0
 
 dev_dependencies:
   flutter_test:
