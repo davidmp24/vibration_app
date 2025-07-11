@@ -1,0 +1,43 @@
+name: vibration_app
+description: "App Vibracao"
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 1.2.3+3
+
+environment:
+  sdk: ^3.8.1
+
+
+dependencies:
+  flutter:
+    sdk: flutter
+  vibration: any
+  firebase_core: any
+  cloud_firestore: any
+  shared_preferences: any
+  uuid: any
+  url_launcher: any
+  flutter_local_notifications: ^17.2.1
+  flutter_background_service: ^5.0.1
+  flutter_background_service_android: ^6.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: "^0.13.1"
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/logo.png" # Ícone normal para versões antigas do Android
+  min_sdk_android: 21
+
+  # Seção para ícones adaptativos (recomendado)
+  adaptive_icon_background: "#FFFFFF" # <-- Defina uma cor para o fundo (ex: #FFFFFF para branco)
+  adaptive_icon_foreground: "assets/icon/logo_foreground.png" # <-- Imagem com fundo transparente
+
+flutter:
+  uses-material-design: true
