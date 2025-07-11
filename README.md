@@ -1,71 +1,110 @@
-# VibraLink  vib_app
+# VibraLink
 
 ![Feito com Flutter](https://img.shields.io/badge/Feito%20com-Flutter-%2302569B?style=for-the-badge&logo=flutter)
+
 ![Plataforma](https://img.shields.io/badge/Plataforma-Android-brightgreen?style=for-the-badge&logo=android)
 
-Um aplicativo Android que permite a dois usuários se comunicarem de forma discreta e minimalista através de padrões de vibração enviados em tempo real.
+![Versão](https://img.shields.io/badge/Vers%C3%A3o-1.2.3-blue?style=for-the-badge)
+
+![Smartwatch](https://img.shields.io/badge/Suporte-Smartwatch%20%26%20Mi%20Band-orange?style=for-the-badge&logo=wear-os)
+
+Bem-vindo ao **VibraLink**, a aplicação definitiva para comunicação discreta e instantânea através de vibrações em tempo real. Conecte-se de forma única, minimalista e silenciosa com quem importa, em qualquer situação.
 
 ---
 
 ## 💡 Conceito
 
-A ideia do **VibraLink** é oferecer um canal de comunicação alternativo que não depende de som ou de atenção visual constante. É perfeito para situações onde o silêncio é necessário ou para criar uma forma de contato particular entre duas pessoas. Ao invés de mensagens de texto, os usuários enviam e recebem "toques" vibratórios, criando uma nova camada de interação digital.
+O **VibraLink** redefine a comunicação digital ao oferecer um canal alternativo que dispensa sons ou atenção visual constante. Perfeito para momentos que exigem discrição ou para criar uma conexão personalizada, o aplicativo permite que dois usuários troquem sinais vibratórios em tempo real, criando uma nova linguagem de interação.
 
 ---
 
-## ✨ Funcionalidades
+## ✨ Funcionalidades Principais
 
-* **Descoberta de Usuários em Tempo Real:** Uma tela de "lobby" mostra quais usuários estão online e disponíveis para se conectar.
-* **Canais de Comunicação Privados:** Ao selecionar um usuário, um canal de comunicação 1-para-1 é estabelecido de forma segura.
-* **Envio de Vibração Contínua:** Pressione e segure um botão para que o aparelho do outro usuário vibre continuamente.
-* **Envio de Padrões de Vibração:** Envie uma sequência customizada de vibrações (ex: 3 toques curtos).
-* **Comunicação Instantânea:** Utiliza o Cloud Firestore do Firebase para garantir que os sinais sejam enviados e recebidos com o mínimo de latência.
-* **Interface Simples e Direta:** Foco total na funcionalidade principal, sem distrações.
+- **Conexão em Tempo Real:** Visualize usuários online em uma tela de lobby moderna e conecte-se instantaneamente com apenas um toque.
+- **Canais Privados e Seguros:** Estabeleça uma comunicação 1:1 com total privacidade, garantida pelo backend em tempo real do Firebase.
+- **Sinais de Vibração Versáteis:**
+  - **Alerta Contínuo:** Pressione e segure para enviar uma vibração de emergência ao dispositivo conectado.
+  - **Padrões Personalizados:** Crie sequências de toques vibratórios para transmitir mensagens codificadas.
+  - **Atalhos Rápidos:** Use botões predefinidos (A, B, C, D, E) para enviar padrões instantâneos com um clique.
+- **Notificações Inteligentes:** Cada toque recebido exibe uma notificação na barra de estado, indicando o remetente e a posição na sequência (ex.: "Toque 2 de 3").
+- **Serviço em Segundo Plano:** Receba sinais mesmo com o aplicativo fechado ou o celular no bolso, graças a um serviço otimizado.
+- **Painel de Ajustes Avançado:** Personalize a duração, espaçamento e intensidade das vibrações, além de escolher entre temas claro e escuro.
+- **Integração com Smartwatches e Mi Bands:** Receba notificações vibratórias diretamente no seu smartwatch ou pulseira inteligente (ex.: Xiaomi Mi Band) via apps como Zepp Life. Desative a vibração do celular para uma experiência totalmente discreta.
 
 ---
 
 ## 📷 Telas do Aplicativo
 
-| Tela de Lobby                                        | Tela de Comunicação                                      |
-| ---------------------------------------------------- | -------------------------------------------------------- |
-| ![Tela de Lobby](link_para_sua_imagem_de_lobby.png)  | ![Tela de Comunicação](link_para_sua_imagem_de_chat.png) |
+| Tela Inicial | Tela de Ajuste |
+|---------------|---------------------|
+| ![Tela Inicial](https://github.com/davidmp24/vibration_app/blob/main/assets/telas/Inicial.png) | ![Tela de Ajuste](https://github.com/davidmp24/vibration_app/blob/main/assets/telas/ajuste1.png) |
 
 ---
 
+
+
 ## ⬇️ Download e Instalação
 
-Como este aplicativo não está na Google Play Store, ele precisa ser instalado manualmente.
+O **VibraLink** não está disponível na Google Play Store, mas pode ser facilmente instalado manualmente.
 
 **Opção de Download:**
 
 <div align="center">
-  <a href="https://github.com/davidmp24/vibration_app/releases/download/v1.1/Vibration.1.1.apk">
-    <img src="https://img.shields.io/badge/Baixar%20APK-v1.0.0-blue?style=for-the-badge&logo=android" alt="Download APK">
+  <a href="https://github.com/davidmp24/vibration_app/releases/download/v1.2.3/VibraLink.1.2.3.apk">
+    <img src="https://img.shields.io/badge/Baixar%20APK-v1.2.3-blue?style=for-the-badge&logo=android" alt="Download APK">
   </a>
 </div>
 
-<br>
+
+<div align="center">
+  <a href="https://github.com/davidmp24/vibration_app/releases/download/v1.1/Vibration.1.1.apk">
+    <img src="https://img.shields.io/badge/Baixar%20APK-v1.1-blue?style=for-the-badge&logo=android" alt="Download APK">
+  </a>
+</div>
+
+<div align="center">
+  <a href="https://github.com/davidmp24/vibration_app/releases/download/v1.2.0/VibraLink1.2.apk">
+    <img src="https://img.shields.io/badge/Baixar%20APK-v1.2-blue?style=for-the-badge&logo=android" alt="Download APK">
+  </a>
+</div>
+
+<div align="center">
+  <a href="https://github.com/davidmp24/vibration_app/releases/download/v1.2.1/VibraLink.1.2.1.apk">
+    <img src="https://img.shields.io/badge/Baixar%20APK-v1.2-blue?style=for-the-badge&logo=android" alt="Download APK">
+  </a>
+</div>
 
 **Como Instalar:**
 
-1.  Clique no botão acima para baixar o arquivo `app-release.apk`.
-2.  Abra o arquivo baixado no seu celular.
-3.  O Android pedirá permissão para instalar aplicativos de "fontes desconhecidas". Você precisa **habilitar essa permissão** para poder instalar o app.
-4.  Siga os passos da instalação e, ao final, abra o aplicativo!
+1. Clique no botão acima para baixar o arquivo `VibraLink.1.2.3.apk`.
+2. Abra o arquivo no seu dispositivo Android.
+3. Habilite a permissão para instalar aplicativos de "fontes desconhecidas" quando solicitado.
+4. Siga as instruções de instalação e comece a usar o **VibraLink**!
 
 ---
 
 ## 🛠️ Tecnologias Utilizadas
 
-* **Flutter:** Framework principal para o desenvolvimento da interface e lógica do app.
-* **Firebase (Cloud Firestore):** Backend em tempo real para gerenciar a presença dos usuários e a troca de mensagens de vibração.
-* **`vibration`:** Pacote para controlar o motor de vibração do dispositivo.
-* **`shared_preferences`:** Para salvar localmente o ID e nome do usuário.
-* **`url_launcher`:** Para abrir links externos (como o do rodapé).
-* **`uuid`:** Para gerar identificadores únicos para os usuários.
+- **Flutter:** Framework principal para uma interface fluida e multiplataforma.
+- **Firebase (Cloud Firestore):** Backend em tempo real para presença de usuários e troca de sinais vibratórios.
+- **`vibration`:** Controle preciso do motor de vibração do dispositivo.
+- **`shared_preferences`:** Armazenamento local de ID e nome do usuário.
+- **`url_launcher`:** Suporte para links externos (ex.: rodapé do desenvolvedor).
+- **`uuid`:** Geração de identificadores únicos para usuários.
+- **Integração com Smartwatches:** Compatibilidade com notificações via Zepp Life e outros apps de wearables.
+
+---
+
+## 🌟 Novidades na Versão 1.2.3
+
+- **Integração com Smartwatches e Mi Bands:** Receba vibrações diretamente no seu wearable, com opção de desativar a vibração do celular.
+- **Notificações Formatadas como Chat:** Compatibilidade otimizada com apps de smartwatches, como Zepp Life, para uma experiência integrada.
+- **Painel de Ajustes Avançado:** Mais opções de personalização para vibrações e temas visuais.
+- **Desempenho Otimizado:** Serviço em segundo plano mais eficiente, garantindo baixa latência e economia de bateria.
 
 ---
 
 ## 👨‍💻 Desenvolvedor
 
-Desenvolvido com ❤️ por **[David MP](https://github.com/davidmp24)**.
+Desenvolvido com ❤️ por **[David MP](https://github.com/davidmp24)**.  
+Agradecemos por experimentar o **VibraLink**! Esperamos que esta ferramenta traga uma nova dimensão à sua forma de se conectar.
